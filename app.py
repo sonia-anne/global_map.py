@@ -13,7 +13,7 @@ st.markdown("<h1 style='text-align: center;'>🌍 NEUROWEAVE: Global Rollout & C
 st.markdown("<p style='text-align: center;'>Mapping the deployment phases, coverage rates and logistical routes of NEUROWEAVE across continents.</p>", unsafe_allow_html=True)
 
 # --- DATA ---
-world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+world = gpd.read_file("data/world-countries.geojson")
 df_data = pd.DataFrame({
     "name": ["United States", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador"],
     "Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research"],
