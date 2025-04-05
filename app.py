@@ -1,82 +1,62 @@
 import streamlit as st
-import geopandas as gpd
+import pydeck as pdk
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-import json
+import numpy as np
 
-# PAGE CONFIG
-st.set_page_config(page_title="NEUROWEAVE: Global Deployment", layout="wide")
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(page_title="NEUROWEAVE 3D Global Rollout", layout="wide")
 
-st.markdown("<h1 style='text-align: center;'>🌐 NEUROWEAVE: Dynamic Global Implementation Map</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>A real-time map showing deployment phases, coverage rates and logistic routes for NEUROWEAVE nanobots across the globe.</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>🌍 NEUROWEAVE: 3D Global Deployment Map</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>A 3D interactive view of the clinical rollout of NEUROWEAVE across countries, visualized by coverage and deployment phase.</p>", unsafe_allow_html=True)
 
-# LOAD GEOJSON FILE (downloaded and placed in /data/)
-world = gpd.read_file("data/world-countries.geojson")
-
-# DUMMY CLINICAL DEPLOYMENT DATA
-df_data = pd.DataFrame({
-    "name": ["United States", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador"],
-    "Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research"],
-    "Coverage (%)": [90, 65, 40, 60, 30, 85, 20],
-    "Deployment Speed": [5, 3.5, 2.8, 3.2, 1.7, 4.5, 1.2],
-    "Nanobots Deployed (M)": [120, 80, 40, 75, 25, 100, 10]
+# --- DATOS SIMULADOS ---
+data = pd.DataFrame({
+    "Country": ["United States", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador"],
+    "Latitude": [38.9072, 52.5200, -15.7801, 28.6139, -33.9249, 39.9042, -0.1807],
+    "Longitude": [-77.0369, 13.4050, -47.9292, 77.2090, 18.4241, 116.4074, -78.4678],
+    "Coverage": [90, 65, 40, 60, 30, 85, 20],
+    "Deployment_Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research"]
 })
-phase_map = {"Research": 1, "Trials": 2, "Pre-Launch": 3, "Active": 4, "Monitoring": 5}
-df_data["Phase_Num"] = df_data["Phase"].map(phase_map)
 
-# MERGE GEO + DATA
-merged = world.merge(df_data, on="name", how="left")
-merged["id"] = merged.index.astype(str)
-geojson = json.loads(merged.to_json())
-
-# 1. CHOROPLETH PHASE MAP
-st.markdown("## 🧭 Clinical Phase Map by Country")
-fig = px.choropleth(
-    merged,
-    geojson=geojson,
-    locations="id",
-    color="Phase_Num",
-    hover_name="name",
-    hover_data={"Coverage (%)": True, "Deployment Speed": True, "Nanobots Deployed (M)": True, "Phase_Num": False, "id": False},
-    color_continuous_scale="Viridis",
-    labels={"Phase_Num": "Clinical Phase"},
-    title="Global Clinical Phase"
+# --- LAYER 3D ---
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data,
+    pickable=True,
+    opacity=0.9,
+    stroked=True,
+    filled=True,
+    radius_scale=40000,
+    radius_min_pixels=6,
+    radius_max_pixels=120,
+    line_width_min_pixels=1,
+    get_position='[Longitude, Latitude]',
+    get_radius="Coverage",
+    get_fill_color="[255 - Coverage, 120, Coverage]",
+    get_line_color=[20, 20, 20],
 )
-fig.update_geos(fitbounds="locations", visible=False)
-fig.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, height=600)
-st.plotly_chart(fig, use_container_width=True)
 
-# 2. BUBBLE OVERLAY FOR DEPLOYMENT DENSITY
-st.markdown("## 💠 Deployment Density Heatmap (Bubble Overlay)")
-fig_bubble = go.Figure()
-
-for i, row in df_data.iterrows():
-    coords = world[world['name'] == row['name']].geometry.centroid.iloc[0]
-    fig_bubble.add_trace(go.Scattergeo(
-        lon=[coords.x],
-        lat=[coords.y],
-        text=f"{row['name']}<br>{row['Nanobots Deployed (M)']}M deployed",
-        marker=dict(
-            size=row["Nanobots Deployed (M)"] / 3,
-            color=row["Coverage (%)"],
-            colorscale="Portland",
-            showscale=False,
-            line=dict(width=0.5, color="white"),
-            opacity=0.85
-        ),
-        name=row["name"]
-    ))
-
-fig_bubble.update_layout(
-    geo=dict(showland=True, landcolor="white", showocean=True, oceancolor="lightblue"),
-    height=600,
-    margin={"r":0,"t":40,"l":0,"b":0},
-    title="Global Deployment Density by Country"
+# --- VISTA INICIAL DEL MUNDO ---
+view_state = pdk.ViewState(
+    latitude=10,
+    longitude=0,
+    zoom=1.2,
+    pitch=45,
 )
-st.plotly_chart(fig_bubble, use_container_width=True)
 
-# FOOTER
+# --- CREAR VISUALIZACIÓN ---
+st.subheader("📌 Interactive 3D Deployment Visualization")
+deck = pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    tooltip={"text": "🧬 {Country}\nCoverage: {Coverage}%\nPhase: {Deployment_Phase}"},
+    map_style="mapbox://styles/mapbox/light-v9"
+)
+
+st.pydeck_chart(deck)
+
+# --- DESCARGAR COMO HTML ---
+deck.to_html("neuroweave_global_deployment_3d.html", notebook_display=False)
 st.markdown("---")
-st.success("Map generated using real-time clinical rollout estimations for NEUROWEAVE nanorobots. Includes coverage, density, and deployment phase data.")
-st.markdown("<p style='text-align:center;font-size:13px;'>Designed by Sonia Annette Echeverría Vera – Ecuadorian Young Scientist | UNESCO-Al Fozan Nominee</p>", unsafe_allow_html=True)
+st.success("The visualization shows current NEUROWEAVE deployment status by country, based on clinical implementation data.")
+st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Candidate to UNESCO-Al Fozan Prize</p>", unsafe_allow_html=True)
