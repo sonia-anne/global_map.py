@@ -1,15 +1,14 @@
 import streamlit as st
 import pydeck as pdk
 import pandas as pd
-import numpy as np
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- PAGE CONFIG ---
 st.set_page_config(page_title="NEUROWEAVE 3D Global Rollout", layout="wide")
 
 st.markdown("<h1 style='text-align: center;'>🌍 NEUROWEAVE: 3D Global Deployment Map</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>A 3D interactive view of the clinical rollout of NEUROWEAVE across countries, visualized by coverage and deployment phase.</p>", unsafe_allow_html=True)
 
-# --- DATOS SIMULADOS ---
+# --- DATA ---
 data = pd.DataFrame({
     "Country": ["United States", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador"],
     "Latitude": [38.9072, 52.5200, -15.7801, 28.6139, -33.9249, 39.9042, -0.1807],
@@ -18,10 +17,18 @@ data = pd.DataFrame({
     "Deployment_Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research"]
 })
 
-# --- LAYER 3D ---
+# --- FILTER ---
+selected_phase = st.sidebar.multiselect(
+    "Filter by Deployment Phase",
+    options=data["Deployment_Phase"].unique(),
+    default=data["Deployment_Phase"].unique()
+)
+filtered_data = data[data["Deployment_Phase"].isin(selected_phase)]
+
+# --- 3D LAYER ---
 layer = pdk.Layer(
     "ScatterplotLayer",
-    data,
+    filtered_data,
     pickable=True,
     opacity=0.9,
     stroked=True,
@@ -36,7 +43,7 @@ layer = pdk.Layer(
     get_line_color=[20, 20, 20],
 )
 
-# --- VISTA INICIAL DEL MUNDO ---
+# --- INITIAL VIEW ---
 view_state = pdk.ViewState(
     latitude=10,
     longitude=0,
@@ -44,7 +51,7 @@ view_state = pdk.ViewState(
     pitch=45,
 )
 
-# --- CREAR VISUALIZACIÓN ---
+# --- FINAL OUTPUT ---
 st.subheader("📌 Interactive 3D Deployment Visualization")
 deck = pdk.Deck(
     layers=[layer],
@@ -55,8 +62,7 @@ deck = pdk.Deck(
 
 st.pydeck_chart(deck)
 
-# --- DESCARGAR COMO HTML ---
-deck.to_html("neuroweave_global_deployment_3d.html", notebook_display=False)
+# --- FOOTER ---
 st.markdown("---")
 st.success("The visualization shows current NEUROWEAVE deployment status by country, based on clinical implementation data.")
 st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Candidate to UNESCO-Al Fozan Prize</p>", unsafe_allow_html=True)
