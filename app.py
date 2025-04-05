@@ -2,67 +2,51 @@ import streamlit as st
 import pydeck as pdk
 import pandas as pd
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="NEUROWEAVE 3D Global Rollout", layout="wide")
+# --- CONFIG PAGE ---
+st.set_page_config(page_title="NEUROWEAVE - Global Phase Rollout", layout="wide")
+st.markdown("<h1 style='text-align: center;'>🌍 NEUROWEAVE: Global Implementation by Clinical Phase</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Visual analysis of NEUROWEAVE deployment by country, phase, and biotech readiness.</p>", unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center;'>🌍 NEUROWEAVE: 3D Global Deployment Map</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center;'>A 3D interactive view of the clinical rollout of NEUROWEAVE across countries, visualized by coverage and deployment phase.</p>", unsafe_allow_html=True)
-
-# --- DATA ---
+# --- SAMPLE DATA ---
 data = pd.DataFrame({
-    "Country": ["United States", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador"],
-    "Latitude": [38.9072, 52.5200, -15.7801, 28.6139, -33.9249, 39.9042, -0.1807],
-    "Longitude": [-77.0369, 13.4050, -47.9292, 77.2090, 18.4241, 116.4074, -78.4678],
-    "Coverage": [90, 65, 40, 60, 30, 85, 20],
-    "Deployment_Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research"]
+    "Country": ["USA", "Germany", "Brazil", "India", "South Africa", "China", "Ecuador", "Japan", "Australia", "Canada"],
+    "Latitude": [38.9, 52.5, -15.78, 28.6, -33.92, 39.9, -0.18, 35.6, -25.3, 45.4],
+    "Longitude": [-77.03, 13.4, -47.9, 77.2, 18.42, 116.4, -78.4, 139.7, 133.8, -75.7],
+    "Coverage": [92, 76, 47, 65, 33, 88, 25, 90, 82, 77],
+    "Phase": ["Active", "Trials", "Pre-Launch", "Trials", "Monitoring", "Active", "Research", "Active", "Pre-Launch", "Trials"],
+    "R&D Score": [95, 91, 74, 83, 62, 94, 68, 96, 85, 89]
 })
+phase_map = {"Research": 1, "Trials": 2, "Pre-Launch": 3, "Active": 4, "Monitoring": 5}
+data["Phase_Num"] = data["Phase"].map(phase_map)
 
-# --- FILTER ---
-selected_phase = st.sidebar.multiselect(
-    "Filter by Deployment Phase",
-    options=data["Deployment_Phase"].unique(),
-    default=data["Deployment_Phase"].unique()
-)
-filtered_data = data[data["Deployment_Phase"].isin(selected_phase)]
+# --- SIDEBAR FILTER ---
+selected = st.sidebar.multiselect("Filter by Deployment Phase", options=data["Phase"].unique(), default=data["Phase"].unique())
+filtered_data = data[data["Phase"].isin(selected)]
 
-# --- 3D LAYER ---
+# --- 3D MAP ---
 layer = pdk.Layer(
-    "ScatterplotLayer",
-    filtered_data,
-    pickable=True,
-    opacity=0.9,
-    stroked=True,
-    filled=True,
-    radius_scale=40000,
-    radius_min_pixels=6,
-    radius_max_pixels=120,
-    line_width_min_pixels=1,
+    "ColumnLayer",
+    data=filtered_data,
     get_position='[Longitude, Latitude]',
-    get_radius="Coverage",
-    get_fill_color="[255 - Coverage, 120, Coverage]",
-    get_line_color=[20, 20, 20],
+    get_elevation="R&D Score",
+    elevation_scale=1000,
+    radius=300000,
+    get_fill_color='[255 - Coverage, 80 + Phase_Num*20, Coverage]',
+    pickable=True,
+    auto_highlight=True
 )
-
-# --- INITIAL VIEW ---
-view_state = pdk.ViewState(
-    latitude=10,
-    longitude=0,
-    zoom=1.2,
-    pitch=45,
-)
-
-# --- FINAL OUTPUT ---
-st.subheader("📌 Interactive 3D Deployment Visualization")
-deck = pdk.Deck(
-    layers=[layer],
-    initial_view_state=view_state,
-    tooltip={"text": "🧬 {Country}\nCoverage: {Coverage}%\nPhase: {Deployment_Phase}"},
-    map_style="mapbox://styles/mapbox/light-v9"
-)
-
+view_state = pdk.ViewState(latitude=10, longitude=20, zoom=1, pitch=40)
+deck = pdk.Deck(layers=[layer], initial_view_state=view_state, map_style="mapbox://styles/mapbox/light-v9",
+                tooltip={"text": "🌎 {Country}\nPhase: {Phase}\nCoverage: {Coverage}%\nR&D: {R&D Score}"})
 st.pydeck_chart(deck)
+
+# --- PIE CHART ---
+import plotly.express as px
+fig_pie = px.pie(data_frame=data, names="Phase", title="🌐 Distribution of Deployment by Phase",
+                 color_discrete_sequence=px.colors.sequential.Rainbow)
+st.plotly_chart(fig_pie, use_container_width=True)
 
 # --- FOOTER ---
 st.markdown("---")
-st.success("The visualization shows current NEUROWEAVE deployment status by country, based on clinical implementation data.")
-st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Candidate to UNESCO-Al Fozan Prize</p>", unsafe_allow_html=True)
+st.info("Sources: WHO ICTRP, Global Biotech Index, World Bank R&D Data, UNESCO Science Reports.")
+st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Young Scientist | UNESCO-Al Fozan Candidate</p>", unsafe_allow_html=True)
