@@ -5,3 +5,5 @@ geopandas
 networkx
 matplotlib
 shapely
+pydeck
+numpy
