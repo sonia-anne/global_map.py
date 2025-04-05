@@ -49,4 +49,4 @@ st.plotly_chart(fig_pie, use_container_width=True)
 # --- FOOTER ---
 st.markdown("---")
 st.info("Sources: WHO ICTRP, Global Biotech Index, World Bank R&D Data, UNESCO Science Reports.")
-st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Young Scientist | UNESCO-Al Fozan Candidate</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center;'>Designed by Sonia Annette Echeverría Vera – Young Scientist</p>", unsafe_allow_html=True)
